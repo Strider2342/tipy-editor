@@ -70,4 +70,36 @@ stdin.on('keypress', (str, key) => {
     cursorPosition.x = 0;
     updateCursorPosition();
   }
+
+  if (key.name === 'home') {
+    cursorPosition.x = 0;
+    updateCursorPosition();
+  }
+
+  if (key.name === 'end') {
+    cursorPosition.x = contentBuffer[cursorPosition.y].length - 1;
+    updateCursorPosition();
+  }
+
+  if (key.name === 'up') {
+    cursorPosition.y = Math.max(cursorPosition.y - 1, 0);
+    cursorPosition.x = Math.min(cursorPosition.x, contentBuffer[cursorPosition.y].length - 1);
+    updateCursorPosition();
+  }
+
+  if (key.name === 'down') {
+    cursorPosition.y = Math.min(cursorPosition.y + 1, contentBuffer.length - 1);
+    cursorPosition.x = Math.min(cursorPosition.x, contentBuffer[cursorPosition.y].length - 1);
+    updateCursorPosition();
+  }
+
+  if (key.name === 'left') {
+    cursorPosition.x = Math.max(cursorPosition.x - 1, 0);
+    updateCursorPosition();
+  }
+
+  if (key.name === 'right') {
+    cursorPosition.x = Math.min(cursorPosition.x + 1, contentBuffer[cursorPosition.y].length - 1);
+    updateCursorPosition();
+  }
 });
