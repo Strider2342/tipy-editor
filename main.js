@@ -9,11 +9,18 @@ const filename = process.argv[2];
 const cursorPosition = { x: 0, y: 0 };
 
 let contentBuffer = [''];
+let screenOffset = 0;
 
 if (!filename) {
   console.error('Usage: node main.js <filename>');
   process.exit(1);
 }
+
+const open = () => {
+  contentBuffer = fs.readFileSync(filename, 'utf8')
+  .split('\n')
+  .map((line) => line + '\n');
+};
 
 const save = () => {
   fs.writeFileSync(filename, contentBuffer.join(''));
@@ -26,13 +33,29 @@ const updateCursorPosition = () => {
 };
 
 const render = () => {
-  contentBuffer.forEach((line) => {
+  stdout.write(ansi.cursorHide);
+  stdout.write(ansi.cursorSavePosition);
+  stdout.write(ansi.clearScreen);
+  stdout.write(ansi.cursorTo(0, 0));
+
+  let start = screenOffset;
+  let end = contentBuffer.length;
+
+  let screenBuffer = [
+    ...contentBuffer.slice(start, end),
+    ...(new Array(stdout.rows - contentBuffer.slice(start, end).length - 1).fill('~\n')),
+  ];
+
+  screenBuffer.forEach((line) => {
     stdout.write(line);
   });
+
+  stdout.write(ansi.cursorRestorePosition);
   stdout.write(ansi.cursorShow);
 };
 
 const init = () => {
+  open();
   cursorPosition.x = 0;
   cursorPosition.y = 0;
   stdout.write(ansi.clearScreen);
@@ -57,49 +80,61 @@ stdin.on('keypress', (str, key) => {
       stdout.write(ansi.clearScreen);
       process.exit();
     }
-  } else if (str) {
-    contentBuffer[cursorPosition.y] += str;
-    stdout.write(str);
-    cursorPosition.x = Math.min(cursorPosition.x + 1, stdout.columns);
-    updateCursorPosition();
-  }
 
-  if (key.name === 'return') {
-    contentBuffer.push('');
-    cursorPosition.y = Math.min(cursorPosition.y + 1, stdout.rows);
-    cursorPosition.x = 0;
-    updateCursorPosition();
-  }
+    if (key.name === 'up') {
+      screenOffset = Math.max(screenOffset - 1, 0);
+      render();
+    }
 
-  if (key.name === 'home') {
-    cursorPosition.x = 0;
-    updateCursorPosition();
-  }
+    if (key.name === 'down') {
+      screenOffset = Math.min(screenOffset + 1, contentBuffer.length);
+      render();
+    }
+  } else {
+    if (str) {
+      contentBuffer[cursorPosition.y] += str;
+      stdout.write(str);
+      cursorPosition.x = Math.min(cursorPosition.x + 1, stdout.columns);
+      updateCursorPosition();
+    }
 
-  if (key.name === 'end') {
-    cursorPosition.x = contentBuffer[cursorPosition.y].length - 1;
-    updateCursorPosition();
-  }
+    if (key.name === 'return') {
+      contentBuffer.push('');
+      cursorPosition.y = Math.min(cursorPosition.y + 1, stdout.rows);
+      cursorPosition.x = 0;
+      updateCursorPosition();
+    }
 
-  if (key.name === 'up') {
-    cursorPosition.y = Math.max(cursorPosition.y - 1, 0);
-    cursorPosition.x = Math.min(cursorPosition.x, contentBuffer[cursorPosition.y].length - 1);
-    updateCursorPosition();
-  }
+    if (key.name === 'home') {
+      cursorPosition.x = 0;
+      updateCursorPosition();
+    }
 
-  if (key.name === 'down') {
-    cursorPosition.y = Math.min(cursorPosition.y + 1, contentBuffer.length - 1);
-    cursorPosition.x = Math.min(cursorPosition.x, contentBuffer[cursorPosition.y].length - 1);
-    updateCursorPosition();
-  }
+    if (key.name === 'end') {
+      cursorPosition.x = contentBuffer[cursorPosition.y].length - 1;
+      updateCursorPosition();
+    }
 
-  if (key.name === 'left') {
-    cursorPosition.x = Math.max(cursorPosition.x - 1, 0);
-    updateCursorPosition();
-  }
+    if (key.name === 'up') {
+      cursorPosition.y = Math.max(cursorPosition.y - 1, 0);
+      cursorPosition.x = Math.min(cursorPosition.x, contentBuffer[cursorPosition.y].length - 1);
+      updateCursorPosition();
+    }
 
-  if (key.name === 'right') {
-    cursorPosition.x = Math.min(cursorPosition.x + 1, contentBuffer[cursorPosition.y].length - 1);
-    updateCursorPosition();
+    if (key.name === 'down') {
+      cursorPosition.y = Math.min(cursorPosition.y + 1, contentBuffer.length - 1);
+      cursorPosition.x = Math.min(cursorPosition.x, contentBuffer[cursorPosition.y].length - 1);
+      updateCursorPosition();
+    }
+
+    if (key.name === 'left') {
+      cursorPosition.x = Math.max(cursorPosition.x - 1, 0);
+      updateCursorPosition();
+    }
+
+    if (key.name === 'right') {
+      cursorPosition.x = Math.min(cursorPosition.x + 1, contentBuffer[cursorPosition.y].length - 1);
+      updateCursorPosition();
+    }
   }
 });
