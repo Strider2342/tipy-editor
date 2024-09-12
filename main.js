@@ -39,7 +39,7 @@ const render = () => {
   stdout.write(ansi.cursorTo(0, 0));
 
   let start = screenOffset;
-  let end = contentBuffer.length;
+  let end = start + Math.min(contentBuffer.length - 1, stdout.rows - 1);
 
   let screenBuffer = [
     ...contentBuffer.slice(start, end),
@@ -82,13 +82,19 @@ stdin.on('keypress', (str, key) => {
     }
 
     if (key.name === 'up') {
-      screenOffset = Math.max(screenOffset - 1, 0);
-      render();
+      if (screenOffset - 1 >= 0) {
+        // TODO: update cursor position even if it's out of the screen
+        screenOffset = screenOffset - 1;
+        render();
+      }
     }
 
     if (key.name === 'down') {
-      screenOffset = Math.min(screenOffset + 1, contentBuffer.length);
-      render();
+      if (screenOffset + 1 <= contentBuffer.length - 1) {
+        // TODO: update cursor position even if it's out of the screen
+        screenOffset = screenOffset + 1;
+        render();
+      }
     }
   } else {
     if (str) {
